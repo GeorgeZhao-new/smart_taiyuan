@@ -1,6 +1,6 @@
 <template>
     <div>
-        <img src="/static/top.png">
+        <img :src="'./static/top.png'">
         <!-- <img src="/static/middle.png" class="left-m">
         <img src="/static/middle.png" class="right-m">
         <img src="/static/bottom.png" class="left-b">

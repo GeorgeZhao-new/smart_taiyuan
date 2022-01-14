@@ -55,7 +55,7 @@ export default {
       this.camera.position.set(1000, 1000, 1000);
 
       this.scene = new THREE.Scene();
-      this.scene.background = new THREE.TextureLoader().load('/static/bg.jpg')
+      this.scene.background = new THREE.TextureLoader().load('./static/bg.jpg')
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       this.renderer.setSize(container.clientWidth, container.clientHeight);
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -103,7 +103,7 @@ export default {
 
       // const green = new THREE.LineBasicMaterial({color: '##0CF6C4', linewidth: 10,})
       // const red = new THREE.LineBasicMaterial({ color: '#9F6718', linewidth: 10 })
-      const texture = new THREE.TextureLoader().load('/static/point.png')
+      const texture = new THREE.TextureLoader().load('./static/point.png')
       // const texture2 = new THREE.TextureLoader().load('/static/guiji.png')
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
       const green = new MeshLineMaterial({ useMap: 1,  map: texture, linewidth: 10})
@@ -161,7 +161,7 @@ export default {
       // this.scene.add(this.mark)
 
       //添加无人机
-      new GLTFLoader().load('/static/model/无人机/UAV.gltf', gltf => {
+      new GLTFLoader().load('./static/model/无人机/UAV.gltf', gltf => {
         const { scene } = gltf
         scene.position.set( 666,250,-202)
         this.mixer = new THREE.AnimationMixer(scene);
@@ -240,7 +240,7 @@ export default {
 			const extrudeSettings = { depth: 300, bevelEnabled: false, bevelSegments: 9, steps: 2, bevelSize: 0, bevelThickness: 0,extrudeMaterial : 1 };
       const geometry = new THREE.ExtrudeGeometry( arcShapeDrn01, extrudeSettings );
 
-      const txtu = new THREE.TextureLoader().load('/static/wf.png')
+      const txtu = new THREE.TextureLoader().load('./static/wf.png')
       txtu.wrapS = txtu.wrapT = THREE.ClampToEdgeWrapping; // CHANGED
       txtu.offset.set( 0, 0.5 ); // CHANGED
       txtu.repeat.set( 0.01, 0.01 ); // CHANGED
@@ -261,7 +261,7 @@ export default {
       this.scene.add(this.cObject)
     },
     createCone(position, index) {
-    const coneImg = ['/static/lightray_yellow.jpg','/static/lightray.jpg']
+    const coneImg = ['./static/lightray_yellow.jpg','./static/lightray.jpg']
     const HEXAGON_RADIUS = 5
     let texture = new THREE.TextureLoader().load(coneImg[index]),
         material = new THREE.MeshBasicMaterial({
