@@ -13,16 +13,10 @@ import CityClass from "./city";
 import building from "../assets/building.json";
 import road from "../assets/road.json";
 import rivers from "../assets/rivers.json"
-// import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer'
-// import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass'
-// import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass'
 import { Water } from 'three/examples/jsm/objects/Water2'
 import { MeshLine, MeshLineMaterial } from 'meshline';
 import CreatRisePoint from './effect/CreatePoint'
-// import { TWEEN } from 'three/examples/jsm/libs/tween.module.min.js';
-// import  createPyramid from './mesh/Pyramid'
 const TWEEN = require('@tweenjs/tween.js')
-// import  * as SceneUtils from 'three/examples/jsm/utils/SceneUtils'
 export default {
   name: "App",
   mounted() {
@@ -65,7 +59,46 @@ export default {
       this.controls.enableDamping = true;
       this.controls.dampingFactor = 0.05;
       this.controls.autoRotate = true
-      const material = new THREE.MeshBasicMaterial({ color: "#2194ce" });
+      const outside =  new THREE.TextureLoader().load('/static/outside.jpg')
+      outside.wrapS = outside.wrapT = THREE.RepeatWrapping
+      const material2 = new THREE.ShaderMaterial({
+            uniforms:{
+                outside: {
+                    value: outside
+                }
+            },
+            vertexShader: `
+              varying vec3 vNormal;
+              varying vec3 vPosition;
+              varying vec2 vUv;
+              void main() {
+                //将attributes的normal通过varying赋值给了向量vNormal
+                vNormal = normal;
+                vPosition = position;
+                vUv = uv;
+                //projectionMatrix是投影变换矩阵 modelViewMatrix是相机坐标系的变换矩阵
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( position.x, position.y, position.z, 1.0 );
+              }
+            `,
+            fragmentShader: `
+              uniform sampler2D outside;
+              varying vec3 vNormal;
+              varying vec3 vPosition;
+              varying vec2 vUv;
+              void main() {
+                float cy = (fract((vPosition.z - 200.0) / 200.0) + 0.7) * 0.7;
+                // 判断是否是顶面，是的话就纯色，不是的话就贴图
+                if(vNormal.x==0.0&&vNormal.z==1.0&&vNormal.y==0.0){
+                  cy = 0.1;
+                  gl_FragColor = vec4(0.0, cy, cy, 1.0);
+                } else {
+                  vec4 color = vec4(0.0, cy, cy, 1.0);
+                  vec4 color2 = texture2D(outside, vUv);
+                  gl_FragColor = mix(color, color2, 0.75);
+                }
+              }
+            `
+          })
       const geometrys = [];
       // 遍历建筑的GeoJson文件
       building.features.forEach((item) => {
@@ -93,18 +126,15 @@ export default {
       });
       // 将所有建筑合并为一个Geometries
       const geometry = mergeBufferGeometries(geometrys);
-      const mesh = new THREE.Mesh(geometry, material);
+      const mesh = new THREE.Mesh(geometry, material2);
       mesh.rotation.x = -Math.PI / 2;
+      // this.scene.add(mesh)
       const object = new THREE.Group();
       object.add(mesh);
       // 添加扫光动画和线条
       this.city = new CityClass(object);
       this.scene.add(this.city.group);
-
-      // const green = new THREE.LineBasicMaterial({color: '##0CF6C4', linewidth: 10,})
-      // const red = new THREE.LineBasicMaterial({ color: '#9F6718', linewidth: 10 })
       const texture = new THREE.TextureLoader().load('/smart-taiyuan/static/point.png')
-      // const texture2 = new THREE.TextureLoader().load('/static/guiji.png')
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
       const green = new MeshLineMaterial({ useMap: 1,  map: texture, linewidth: 10})
       const red = new MeshLineMaterial({ color: '#9F6718', linewidth: 10 })
@@ -156,9 +186,6 @@ export default {
       })
       water.rotation.x = -Math.PI / 2;
       this.scene.add(water)
-      // this.mark = createPyramid()
-      // this.mark.position.set(666,250,-202)
-      // this.scene.add(this.mark)
 
       //添加无人机
       new GLTFLoader().load('/smart-taiyuan/static/model/无人机/UAV.gltf', gltf => {
@@ -169,21 +196,6 @@ export default {
         this.scene.add(scene)
       })
       this.isDown = true;
-
-    //   const renderPass = new RenderPass(this.scene, this.camera);
-    //   this.composer = new EffectComposer(this.renderer);
-    //   /**
-    //    * UnrealBloomPass的参数
-    //    * 1:辉光所覆盖的场景大小
-    //    * 2：辉光的强度
-    //    * 3：辉光散发的半径
-    //    * 4：辉光的阈值（场景中的光强大于该值就会产生辉光效果）
-    //    */
-    //   const unrealBloomPass = new UnrealBloomPass(new THREE.Vector2(container.clientWidth, container.clientHeight), 0.2, 0.1, 0.5);
-    //   unrealBloomPass.renderToScreen = true;
-    //   this.composer.addPass(renderPass);
-    //   this.composer.addPass(unrealBloomPass);
-    //   this.renderer.autoClear = false;
 
     // 添加粒子效果
     this.points = new CreatRisePoint()
@@ -206,7 +218,6 @@ export default {
     animate() {
       if (this.isDown) {
         this.cObject.rotateZ(0.1)
-        // this.mark.rotateY(0.1)
         requestAnimationFrame(this.animate);
         TWEEN.update()
         const delta = this.clock.getDelta();
@@ -220,8 +231,6 @@ export default {
           this.mixer.update(delta)
           }
         this.controls.update();
-        // this.composer.render(delta)
-        // this.texture.offset.x -=0.01
         this.createCone(new THREE.Vector3(0,0,0),1)
         this.renderer.render(this.scene, this.camera);
       }
@@ -236,7 +245,6 @@ export default {
 			arcShapeDrn01.lineTo( 320, 0 );
 			arcShapeDrn01.absarc( 0, 0, 320, 0, Math.PI * 2/4/6*5, false );
 			arcShapeDrn01.absarc( 0, 0, 310,Math.PI * 2/4/6*5,0, true );
-      // let geometry = new THREE.ShapeGeometry( arcShapeDrn01 );
 			const extrudeSettings = { depth: 300, bevelEnabled: false, bevelSegments: 9, steps: 2, bevelSize: 0, bevelThickness: 0,extrudeMaterial : 1 };
       const geometry = new THREE.ExtrudeGeometry( arcShapeDrn01, extrudeSettings );
 
@@ -245,10 +253,6 @@ export default {
       txtu.offset.set( 0, 0.5 ); // CHANGED
       txtu.repeat.set( 0.01, 0.01 ); // CHANGED
       const material =new THREE.MeshBasicMaterial( { map: txtu, transparent: true,  opacity: 0.8 } )
-      // const m1 = new THREE.MeshBasicMaterial()
-      // const fs = new new THREE.MeshFaceMaterial([m1,material]);
-      // const ms = new THREE.Mesh(geometry, material);
-      // this.scene.add(ms)
       const mesh = new THREE.Mesh( geometry,material );
       for(let i = 1; i < 5; i++ ){
         const nMesh = mesh.clone()
@@ -288,11 +292,6 @@ export default {
     // plane1.lookAt(0, 0, 0)
     this.scene.add(plane1)
 }
-    // addTrafficAlarm(object){
-    //     const { position, name, url } = object
-    //     const [ x, y ] = this.calculationCoordinate(position)
-        
-    // }
   },
 };
 </script>
