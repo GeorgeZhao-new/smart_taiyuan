@@ -15,8 +15,9 @@ import road from "../assets/road.json";
 import rivers from "../assets/rivers.json"
 import { Water } from 'three/examples/jsm/objects/Water2'
 import { MeshLine, MeshLineMaterial } from 'meshline';
-import CreatRisePoint from './effect/CreatePoint'
+// import CreatRisePoint from './effect/CreatePoint'
 const TWEEN = require('@tweenjs/tween.js')
+const raycaster = new THREE.Raycaster()
 export default {
   name: "App",
   mounted() {
@@ -39,12 +40,12 @@ export default {
     async init() {
       this.isDown = false;
       this.clock = new THREE.Clock(); // 用于更新轨道控制器
-      let container = document.getElementById("three");
+      let container = this.container = document.getElementById("three");
 
       const fov = 75;
       const aspect = container.clientWidth / container.clientHeight;
       const near = 1;
-      const far = 10000;
+      const far = 100000;
       this.camera = new THREE.PerspectiveCamera(fov, aspect, near, far);
       this.camera.position.set(1000, 1000, 1000);
 
@@ -58,63 +59,37 @@ export default {
       this.controls.enablePan = true;
       this.controls.enableDamping = true;
       this.controls.dampingFactor = 0.05;
-      this.controls.autoRotate = true
+      // this.controls.addEventListener('change',()=>{
+      //   console.log(this.camera.zoom);
+      // })
+      // this.controls.autoRotate = true
+      const group = new THREE.Group();
       const outside =  new THREE.TextureLoader().load('/static/outside.jpg')
       outside.wrapS = outside.wrapT = THREE.RepeatWrapping
-      const material2 = new THREE.ShaderMaterial({
-            uniforms:{
-                outside: {
-                    value: outside
-                }
-            },
-            vertexShader: `
-              varying vec3 vNormal;
-              varying vec3 vPosition;
-              varying vec2 vUv;
-              void main() {
-                //将attributes的normal通过varying赋值给了向量vNormal
-                vNormal = normal;
-                vPosition = position;
-                vUv = uv;
-                //projectionMatrix是投影变换矩阵 modelViewMatrix是相机坐标系的变换矩阵
-                gl_Position = projectionMatrix * modelViewMatrix * vec4( position.x, position.y, position.z, 1.0 );
-              }
-            `,
-            fragmentShader: `
-              uniform sampler2D outside;
-              varying vec3 vNormal;
-              varying vec3 vPosition;
-              varying vec2 vUv;
-              void main() {
-                float cy = (fract((vPosition.z - 200.0) / 200.0) + 0.7) * 0.7;
-                // 判断是否是顶面，是的话就纯色，不是的话就贴图
-                if(vNormal.x==0.0&&vNormal.z==1.0&&vNormal.y==0.0){
-                  cy = 0.1;
-                  gl_FragColor = vec4(0.0, cy, cy, 1.0);
-                } else {
-                  vec4 color = vec4(0.0, cy, cy, 1.0);
-                  vec4 color2 = texture2D(outside, vUv);
-                  gl_FragColor = mix(color, color2, 0.75);
-                }
-              }
-            `
-          })
+      
       const geometrys = [];
+      let maxH = 1
       // 遍历建筑的GeoJson文件
       building.features.forEach((item) => {
         if (item.geometry && item?.geometry.type === "Polygon") {
           // 拉高的参数
+          let h = item.properties.Floor * 2
+          if( maxH < h ){
+            maxH = h
+          }
           const extrudeSettings = {
-            depth: item.properties.Floor * 5,
+            depth: h,
             bevelEnabled: false,
           };
           const shape = new THREE.Shape();
           // 获取并计算xy坐标
-          let [ x, y ] = this.calculationCoordinate(item.geometry.coordinates[0][0])
+          // let [ x, y ] = this.calculationCoordinate(item.geometry.coordinates[0][0])
+          let [ x,y ] = item.geometry.coordinates[0][0]
           // 移动到初始坐标
           shape.moveTo( x , y);
           item.geometry.coordinates[0].forEach((point) => {
-            [ x, y ] = this.calculationCoordinate(point)
+            // [ x, y ] = this.calculationCoordinate(point)
+            [ x, y ] = point
             // 连接后续坐标
             shape.lineTo(x , y);
           });
@@ -126,14 +101,61 @@ export default {
       });
       // 将所有建筑合并为一个Geometries
       const geometry = mergeBufferGeometries(geometrys);
-      const mesh = new THREE.Mesh(geometry, material2);
+      const material = new THREE.ShaderMaterial({
+            uniforms:{
+                outside: {
+                    value: outside
+                },
+                center: {
+                  value: this.cityCenter
+                },
+                maxH: {
+                  value: parseFloat(maxH)
+                }
+            },
+            vertexShader: `
+              varying vec3 vNormal;
+              varying vec3 vPosition;
+              varying vec2 vUv;
+              uniform vec2 center;
+              void main() {
+                //将attributes的normal通过varying赋值给了向量vNormal
+                vNormal = normal;
+                vPosition = vec3((position.x - center.x) * 22000.0, -( position.y - center.y ) * 22000.0, position.z );
+                vUv = uv;
+                //projectionMatrix是投影变换矩阵 modelViewMatrix是相机坐标系的变换矩阵
+                gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition.x, vPosition.y, vPosition.z  , 1.0 );
+              }
+            `,
+            fragmentShader: `
+              uniform sampler2D outside;
+              varying vec3 vNormal;
+              varying vec3 vPosition;
+              varying vec2 vUv;
+              uniform float maxH;
+              void main() {
+                float cy = (fract((vPosition.z - maxH) / maxH) + 0.7) * 0.7;
+                // 判断是否是顶面，是的话就纯色，不是的话就贴图
+                // if(vNormal.x==0.0&&vNormal.z==1.0&&vNormal.y==1.0){
+                //   gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
+                // } else {
+                  // vec4 color = vec4(cy, cy, cy, 1.0);
+                  // vec4 color2 = texture2D(outside, vUv);
+                  // gl_FragColor = mix(color, color2, 0.75);
+                  gl_FragColor = vec4(cy, cy, cy, 1.0);
+                // }
+              }
+            `
+          })
+      const mesh = new THREE.Mesh(geometry, material);
       mesh.rotation.x = -Math.PI / 2;
       // this.scene.add(mesh)
       const object = new THREE.Group();
       object.add(mesh);
       // 添加扫光动画和线条
       this.city = new CityClass(object);
-      this.scene.add(this.city.group);
+      group.add(this.city.group)
+      // this.scene.add(this.city.group);
       const texture = new THREE.TextureLoader().load('/smart-taiyuan/static/point.png')
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
       const green = new MeshLineMaterial({ useMap: 1,  map: texture, linewidth: 10})
@@ -158,6 +180,7 @@ export default {
       lines.position.y = -5
       lines.rotation.x = -Math.PI / 2;
       this.scene.add(lines)
+      // group.add(lines)
 
       const riversGeometry = []
       rivers.features.forEach(item=>{
@@ -165,10 +188,12 @@ export default {
            const shape = new THREE.Shape();
             // 获取并计算xy坐标
             let [ x, y ] = this.calculationCoordinate(item.geometry.coordinates[0][0])
+            // let [x,y] = item.geometry.coordinates[0][0]
             // 移动到初始坐标
             shape.moveTo( x , y);
             item.geometry.coordinates[0].forEach((point) => {
               [ x, y ] = this.calculationCoordinate(point)
+              // [x,y] = point
               // 连接后续坐标
               shape.lineTo(x , y);
             });
@@ -185,12 +210,23 @@ export default {
         textureHeight:1024,
       })
       water.rotation.x = -Math.PI / 2;
-      this.scene.add(water)
-
+      // this.scene.add(water)
+      group.add(water)
+      this.scene.add(group)
+      const bbox = new THREE.Box3().setFromObject(lines)
+      const { max, min } = bbox
+      const w = max.x - min.x
+      const h = max.z - min.z
+      const floorG = new THREE.PlaneGeometry(w, h, 20);
+      const floor = this.floor =  new THREE.Mesh(floorG, new THREE.MeshBasicMaterial({ color: '#cfcfcf', side: THREE.DoubleSide }))
+      floor.rotateX(-Math.PI / 2)
+      floor.position.y = -8
+      this.scene.add(floor)
       //添加无人机
       new GLTFLoader().load('/smart-taiyuan/static/model/无人机/UAV.gltf', gltf => {
         const { scene } = gltf
         scene.position.set( 666,250,-202)
+        console.log(scene);
         this.mixer = new THREE.AnimationMixer(scene);
         this.mixer.clipAction(gltf.animations[0]).play();
         this.scene.add(scene)
@@ -198,9 +234,9 @@ export default {
       this.isDown = true;
 
     // 添加粒子效果
-    this.points = new CreatRisePoint()
-    this.points.add({position: new THREE.Vector3(0,100,0),minRadius: 80,maxRadius: 1000,height: 500, size: 10,color: '#0527AF',number: 1000 })
-    this.scene.add(this.points.group)
+    // this.points = new CreatRisePoint()
+    // this.points.add({position: new THREE.Vector3(0,100,0),minRadius: 80,maxRadius: 1000,height: 500, size: 10,color: '#0527AF',number: 1000 })
+    // this.scene.add(this.points.group)
     this.addCircleAlarm()
     // this.renderer.addEffect(points)
 
@@ -214,6 +250,18 @@ export default {
       this.renderer.gammaInput = true;
       this.renderer.gammaOutput = true;
       container.appendChild(this.renderer.domElement);
+      container.addEventListener('click',this.onMouseClick)
+    },
+    onMouseClick(event){
+      const mouse = new THREE.Vector2();
+      mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
+      mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
+      raycaster.setFromCamera( mouse, this.camera );
+      const intersects = raycaster.intersectObjects( [this.floor] );
+      console.log(intersects);
+    },
+    onDBlclick(){
+
     },
     animate() {
       if (this.isDown) {
@@ -236,7 +284,7 @@ export default {
       }
     },
     calculationCoordinate([x,y]){
-      return [( x - this.cityCenter.x) * 12000 * this.shapeScaleSize, -(y - this.cityCenter.y) * 12000 * this.shapeScaleSize ]
+      return [( x - this.cityCenter.x) * 22000 * this.shapeScaleSize, -(y - this.cityCenter.y) * 22000 * this.shapeScaleSize ]
     },
     addCircleAlarm(){
       this.cObject = new THREE.Object3D()
