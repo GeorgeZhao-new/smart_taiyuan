@@ -15,6 +15,13 @@ import road from "../assets/road.json";
 import rivers from "../assets/rivers.json"
 import { Water } from 'three/examples/jsm/objects/Water2'
 import { MeshLine, MeshLineMaterial } from 'meshline';
+// import negx from '@/assets/sky/negx.jpg'
+// import negy from '@/assets/sky/negy.jpg'
+// import negz from '@/assets/sky/negz.jpg'
+// import posx from '@/assets/sky/pocx.jpg'
+// import posy from '@/assets/sky/pocy.jpg'
+// import posz from '@/assets/sky/pocz.jpg'
+
 // import CreatRisePoint from './effect/CreatePoint'
 const TWEEN = require('@tweenjs/tween.js')
 const raycaster = new THREE.Raycaster()
@@ -50,7 +57,7 @@ export default {
       this.camera.position.set(1000, 1000, 1000);
 
       this.scene = new THREE.Scene();
-      this.scene.background = new THREE.TextureLoader().load('/smart-taiyuan/static/bg.jpg')
+      // this.scene.background = new THREE.TextureLoader().load('/smart-taiyuan/static/bg.jpg')
       this.renderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
       this.renderer.setSize(container.clientWidth, container.clientHeight);
       this.controls = new OrbitControls(this.camera, this.renderer.domElement);
@@ -59,6 +66,17 @@ export default {
       this.controls.enablePan = true;
       this.controls.enableDamping = true;
       this.controls.dampingFactor = 0.05;
+
+      const imgs = [ 
+        './static/sky/you.png',
+        './static/sky/zuo.png',
+        './static/sky/shang.png',
+        './static/sky/xia.png',
+        './static/sky/qian.png',
+        './static/sky/hou.png',
+        
+      ]
+      this.scene.background = new THREE.CubeTextureLoader().load(imgs)
       // this.controls.addEventListener('change',()=>{
       //   console.log(this.camera.zoom);
       // })
@@ -73,7 +91,7 @@ export default {
       building.features.forEach((item) => {
         if (item.geometry && item?.geometry.type === "Polygon") {
           // 拉高的参数
-          let h = item.properties.Floor * 2
+          let h = item.properties.Floor * 4
           if( maxH < h ){
             maxH = h
           }
@@ -121,7 +139,7 @@ export default {
               void main() {
                 //将attributes的normal通过varying赋值给了向量vNormal
                 vNormal = normal;
-                vPosition = vec3((position.x - center.x) * 22000.0, -( position.y - center.y ) * 22000.0, position.z );
+                vPosition = vec3((position.x - center.x) * 50000.0, -( position.y - center.y ) * 50000.0, position.z );
                 vUv = uv;
                 //projectionMatrix是投影变换矩阵 modelViewMatrix是相机坐标系的变换矩阵
                 gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition.x, vPosition.y, vPosition.z  , 1.0 );
@@ -218,9 +236,10 @@ export default {
       const w = max.x - min.x
       const h = max.z - min.z
       const floorG = new THREE.PlaneGeometry(w, h, 20);
-      const floor = this.floor =  new THREE.Mesh(floorG, new THREE.MeshBasicMaterial({ color: '#cfcfcf', side: THREE.DoubleSide }))
+      const floor = this.floor =  new THREE.Mesh(floorG, new THREE.MeshBasicMaterial({ color: '#cfcfcf', side: THREE.DoubleSide, transparent: true, opacity: 0.1 }))
       floor.rotateX(-Math.PI / 2)
       floor.position.y = -8
+      floor.scale.set(100,100,1)
       this.scene.add(floor)
       //添加无人机
       new GLTFLoader().load('/smart-taiyuan/static/model/无人机/UAV.gltf', gltf => {
@@ -279,12 +298,12 @@ export default {
           this.mixer.update(delta)
           }
         this.controls.update();
-        this.createCone(new THREE.Vector3(0,0,0),1)
+        // this.createCone(new THREE.Vector3(0,0,0),1)
         this.renderer.render(this.scene, this.camera);
       }
     },
     calculationCoordinate([x,y]){
-      return [( x - this.cityCenter.x) * 22000 * this.shapeScaleSize, -(y - this.cityCenter.y) * 22000 * this.shapeScaleSize ]
+      return [( x - this.cityCenter.x) * 50000 * this.shapeScaleSize, -(y - this.cityCenter.y) * 50000 * this.shapeScaleSize ]
     },
     addCircleAlarm(){
       this.cObject = new THREE.Object3D()
