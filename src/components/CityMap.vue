@@ -37,8 +37,8 @@ export default {
       group2: [],
       // 地图缩放等级
       shapeScaleSize: 1,
-      faceColor: "#F8F8FF",
-      sideColor: "#D3D3D3",
+      // faceColor: "#F8F8FF",
+      sideColor: "#CFCFCF",
       shapeGeometryObj: {},
       cityCenter: {x:112.5454,y:37.851}
     };
@@ -82,8 +82,8 @@ export default {
       // })
       // this.controls.autoRotate = true
       const group = new THREE.Group();
-      const outside =  new THREE.TextureLoader().load('/static/outside.jpg')
-      outside.wrapS = outside.wrapT = THREE.RepeatWrapping
+      // const outside =  new THREE.TextureLoader().load('./static/outside.jpg')
+      // outside.wrapS = outside.wrapT = THREE.RepeatWrapping
       
       const geometrys = [];
       let maxH = 1
@@ -121,9 +121,9 @@ export default {
       const geometry = mergeBufferGeometries(geometrys);
       const material = new THREE.ShaderMaterial({
             uniforms:{
-                outside: {
-                    value: outside
-                },
+                // outside: {
+                //     value: outside
+                // },
                 center: {
                   value: this.cityCenter
                 },
@@ -171,10 +171,10 @@ export default {
       const object = new THREE.Group();
       object.add(mesh);
       // 添加扫光动画和线条
-      this.city = new CityClass(object);
+      this.city = new CityClass(object,this.cityCenter);
       group.add(this.city.group)
-      // this.scene.add(this.city.group);
-      const texture = new THREE.TextureLoader().load('/smart-taiyuan/static/point.png')
+      this.scene.add(this.city.group);
+      const texture = new THREE.TextureLoader().load('./static/point.png')
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
       const green = new MeshLineMaterial({ useMap: 1,  map: texture, linewidth: 10})
       const red = new MeshLineMaterial({ color: '#9F6718', linewidth: 10 })
