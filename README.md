@@ -23,11 +23,3 @@ yarn build
 ```
 yarn lint
 ```
-
-### Customize configuration
-
-See [Configuration Reference](https://cli.vuejs.org/config/).
-
-### Three 的版本
-
-仅支持 0.129.0

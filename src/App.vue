@@ -22,7 +22,7 @@ export default {
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  background-image: url('/smart-taiyuan/static/bg.jpg');
+  /* background-image: url('/smart-taiyuan/static/bg.jpg'); */
 }
 .layout{
   position:absolute;
