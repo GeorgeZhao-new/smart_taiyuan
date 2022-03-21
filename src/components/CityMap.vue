@@ -77,13 +77,14 @@ export default {
         
       ]
       this.scene.background = new THREE.CubeTextureLoader().load(imgs)
+      console.log(this.scene.background);
       // this.controls.addEventListener('change',()=>{
       //   console.log(this.camera.zoom);
       // })
       // this.controls.autoRotate = true
       const group = new THREE.Group();
-      const outside =  new THREE.TextureLoader().load('/static/outside.jpg')
-      outside.wrapS = outside.wrapT = THREE.RepeatWrapping
+      // const outside =  new THREE.TextureLoader().load('./static/outside.jpg')
+      // outside.wrapS = outside.wrapT = THREE.RepeatWrapping
       
       const geometrys = [];
       let maxH = 1
@@ -101,13 +102,13 @@ export default {
           };
           const shape = new THREE.Shape();
           // 获取并计算xy坐标
-          // let [ x, y ] = this.calculationCoordinate(item.geometry.coordinates[0][0])
-          let [ x,y ] = item.geometry.coordinates[0][0]
+          let [ x, y ] = this.calculationCoordinate(item.geometry.coordinates[0][0])
+          // let [ x,y ] = item.geometry.coordinates[0][0]
           // 移动到初始坐标
           shape.moveTo( x , y);
           item.geometry.coordinates[0].forEach((point) => {
-            // [ x, y ] = this.calculationCoordinate(point)
-            [ x, y ] = point
+            [ x, y ] = this.calculationCoordinate(point)
+            // [ x, y ] = point
             // 连接后续坐标
             shape.lineTo(x , y);
           });
@@ -119,11 +120,11 @@ export default {
       });
       // 将所有建筑合并为一个Geometries
       const geometry = mergeBufferGeometries(geometrys);
-      const material = new THREE.ShaderMaterial({
+      this.material = new THREE.ShaderMaterial({
             uniforms:{
-                outside: {
-                    value: outside
-                },
+                // outside: {
+                //     value: outside
+                // },
                 center: {
                   value: this.cityCenter
                 },
@@ -139,14 +140,15 @@ export default {
               void main() {
                 //将attributes的normal通过varying赋值给了向量vNormal
                 vNormal = normal;
-                vPosition = vec3((position.x - center.x) * 50000.0, -( position.y - center.y ) * 50000.0, position.z );
+                // vPosition = vec3((position.x - center.x) * 50000.0, -( position.y - center.y ) * 50000.0, position.z );
+                vPosition = position;
                 vUv = uv;
                 //projectionMatrix是投影变换矩阵 modelViewMatrix是相机坐标系的变换矩阵
                 gl_Position = projectionMatrix * modelViewMatrix * vec4( vPosition.x, vPosition.y, vPosition.z  , 1.0 );
               }
             `,
             fragmentShader: `
-              uniform sampler2D outside;
+              // uniform sampler2D outside;
               varying vec3 vNormal;
               varying vec3 vPosition;
               varying vec2 vUv;
@@ -154,29 +156,29 @@ export default {
               void main() {
                 float cy = (fract((vPosition.z - maxH) / maxH) + 0.7) * 0.7;
                 // 判断是否是顶面，是的话就纯色，不是的话就贴图
-                // if(vNormal.x==0.0&&vNormal.z==1.0&&vNormal.y==1.0){
-                //   gl_FragColor = vec4(0.0, 0.0, 0.0, 1.0);
-                // } else {
-                  // vec4 color = vec4(cy, cy, cy, 1.0);
-                  // vec4 color2 = texture2D(outside, vUv);
-                  // gl_FragColor = mix(color, color2, 0.75);
-                  gl_FragColor = vec4(cy, cy, cy, 1.0);
-                // }
+                  float yu = mod( vPosition.z, 4.0 );
+                  if(yu<0.5){
+                    gl_FragColor = vec4(0.2, 0.2, 0.2, 1.0);
+                  } else {
+                    gl_FragColor = vec4(cy, cy, cy, 1.0);
+                  }
               }
             `
           })
-      const mesh = new THREE.Mesh(geometry, material);
+      
+      const mesh = new THREE.Mesh(geometry, this.material);
       mesh.rotation.x = -Math.PI / 2;
       // this.scene.add(mesh)
       const object = new THREE.Group();
       object.add(mesh);
       // 添加扫光动画和线条
-      this.city = new CityClass(object);
+      this.city = new CityClass(object,this.cityCenter);
       group.add(this.city.group)
       // this.scene.add(this.city.group);
       const texture = new THREE.TextureLoader().load('/smart-taiyuan/static/point.png')
       texture.wrapS = texture.wrapT = THREE.RepeatWrapping
       const green = new MeshLineMaterial({ useMap: 1,  map: texture, linewidth: 10})
+      console.log(green);
       const red = new MeshLineMaterial({ color: '#9F6718', linewidth: 10 })
       const lines = new THREE.Object3D()
       // 遍历街道
@@ -245,7 +247,7 @@ export default {
       new GLTFLoader().load('/smart-taiyuan/static/model/无人机/UAV.gltf', gltf => {
         const { scene } = gltf
         scene.position.set( 666,250,-202)
-        console.log(scene);
+        // console.log(scene);
         this.mixer = new THREE.AnimationMixer(scene);
         this.mixer.clipAction(gltf.animations[0]).play();
         this.scene.add(scene)
@@ -276,8 +278,8 @@ export default {
       mouse.x = ( event.clientX / window.innerWidth ) * 2 - 1;
       mouse.y = - ( event.clientY / window.innerHeight ) * 2 + 1;
       raycaster.setFromCamera( mouse, this.camera );
-      const intersects = raycaster.intersectObjects( [this.floor] );
-      console.log(intersects);
+      // const intersects = raycaster.intersectObjects( [this.floor] );
+      // console.log(intersects);
     },
     onDBlclick(){
 

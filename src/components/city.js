@@ -33,7 +33,7 @@ const wallData = [{
 }]
 
 class City {
-    constructor( scene ) {
+    constructor( scene, center ) {
         // this.fbxLoader = new FBXLoader();
         this.group = new THREE.Group();
 
@@ -57,7 +57,7 @@ class City {
                 child.geometry.computeBoundingBox();
                 child.geometry.computeBoundingSphere();
                 // 添加包围线条效
-                this.surroundLine(child);
+                this.surroundLine(child, center);
             }
         })
 
@@ -101,7 +101,7 @@ class City {
     /**
      * 获取包围线条效果
      */
-    surroundLine(object) {
+    surroundLine(object,center) {
         // 获取线条geometry
         const geometry = Effects.surroundLineGeometry(object);
         // 获取物体的世界坐标 旋转等
@@ -125,7 +125,7 @@ class City {
             max,
             min,
             size
-        });
+        }, center);
 
         const line = new THREE.LineSegments(geometry, material);
 
@@ -144,14 +144,14 @@ class City {
         max,
         min,
         // size
-    }) {
+    }, center) {
         if (this.surroundLineMaterial) return this.surroundLineMaterial;
 
         this.surroundLineMaterial = new THREE.ShaderMaterial({
             transparent: true,
             uniforms: {
                 uColor: {
-                    value: new THREE.Color("#03a9f4")
+                    value: new THREE.Color("#cfcfcf")
                 },
                 uActive: {
                     value: new THREE.Color("#b3e5fc")
@@ -172,7 +172,10 @@ class City {
                 uSpeed: {
                     value: 0.2
                 },
-                uStartTime: this.StartTime
+                uStartTime: this.StartTime,
+                center: {
+                    value: center
+                }
             },
             vertexShader: Shader.surroundLine.vertexShader,
             fragmentShader: Shader.surroundLine.fragmentShader

@@ -30,6 +30,7 @@ const surroundLine = {
     uniform vec3 uActive;
     uniform vec3 uMin;
     uniform vec3 uMax;
+    uniform vec2 center;
 
     varying vec3 vColor;
 
@@ -52,6 +53,7 @@ const surroundLine = {
             }
         }
         vec3 vPosition = vec3(position.x, position.y, position.z * uStartTime);
+        // vec3 vPosition = vec3((position.x - center.x) * 50000.0, -( position.y - center.y ) * 50000.0, position.z * uStartTime);
         gl_Position = projectionMatrix * modelViewMatrix * vec4(vPosition, 1.0);
     } 
     `,
