@@ -151,7 +151,7 @@ class City {
             transparent: true,
             uniforms: {
                 uColor: {
-                    value: new THREE.Color("#cfcfcf")
+                    value: new THREE.Color("#0B2039")
                 },
                 uActive: {
                     value: new THREE.Color("#b3e5fc")
